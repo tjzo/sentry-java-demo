@@ -1,0 +1,57 @@
+version: '3'
+services:
+  web:
+    image: ${SENTRY_IMAGE}
+    restart: always
+    ports:
+      - 80:9000
+      - 443:9000
+    command: sentry run web
+    volumes:
+      - ./data/app:/var/lib/sentry/files
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+  worker:
+    image: ${SENTRY_IMAGE}
+    restart: always
+    command: sentry run worker -l info -c 4
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+  beat:
+    image: ${SENTRY_IMAGE}
+    restart: always
+    command: sentry run cron -l info
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+  test:
+    image: ${SENTRY_IMAGE}
+    restart: always
+    command: tail -F /tmp/xxx.log
+    depends_on:
+      - redis
+      - postgres
+    env_file:
+      - .env
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      - ./data/redis:/data
+  postgres:
+    image: postgres:9-alpine
+    restart: always
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${SENTRY_DB_NAME}
+      POSTGRES_PASSWORD: ${SENTRY_DB_USER}
+      POSTGRES_USER: ${SENTRY_DB_PASSWORD}
