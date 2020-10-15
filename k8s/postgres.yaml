@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-postgres-deployment
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-postgres
+    name: sentry-postgres-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      layer: sentry
+      env: all
+      app: sentry-postgres
+      name: sentry-postgres-server
+  template:
+    metadata:
+      labels:
+        layer: sentry
+        env: all
+        app: sentry-postgres
+        name: sentry-postgres-server
+    spec:
+      containers:
+        - name: sentry-postgres
+          image: postgres:9-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: sentry-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: data
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/sentry/data/postgres
+            type: DirectoryOrCreate
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: postgres
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-postgres
+    name: sentry-postgres-server
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    layer: sentry
+    env: all
+    app: sentry-postgres
+    name: sentry-postgres-server 

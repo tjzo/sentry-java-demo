@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-redis-deployment
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-redis
+    name: sentry-redis-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      layer: sentry
+      env: all
+      app: sentry-redis
+      name: sentry-redis-server
+  template:
+    metadata:
+      labels:
+        layer: sentry
+        env: all
+        app: sentry-redis
+        name: sentry-redis-server
+    spec:
+      containers:
+        - name: sentry-redis
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - mountPath: /data
+              name: data
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/sentry/data/redis
+            type: DirectoryOrCreate
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: redis
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-redis
+    name: sentry-redis-server
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    layer: sentry
+    env: all
+    app: sentry-redis
+    name: sentry-redis-server

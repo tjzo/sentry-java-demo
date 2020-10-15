@@ -1,0 +1,139 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-web-deployment
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-web
+    name: sentry-web-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      layer: sentry
+      env: all
+      app: sentry-web
+      name: sentry-web-server
+  template:
+    metadata:
+      labels:
+        layer: sentry
+        env: all
+        app: sentry-web
+        name: sentry-web-server
+    spec:
+      containers:
+        - name: sentry
+          image: sentry:9.1.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9000
+          envFrom:
+            - configMapRef:
+                name: sentry-config
+          volumeMounts:
+            - mountPath: /var/lib/sentry/files
+              name: data
+      volumes:
+        - name: data
+          hostPath:
+            path: /var/sentry/data/app
+            type: DirectoryOrCreate
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: sentry-web
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-web
+    name: sentry-web-server
+spec:
+  type: NodePort
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30080
+  selector:
+    layer: sentry
+    env: all
+    app: sentry-web
+    name: sentry-web-server
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-beat-deployment
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-beat
+    name: sentry-beat-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      layer: sentry
+      env: all
+      app: sentry-beat
+      name: sentry-beat-server
+  template:
+    metadata:
+      labels:
+        layer: sentry
+        env: all
+        app: sentry-beat
+        name: sentry-beat-server
+    spec:
+      containers:
+        - name: sentry-beat
+          image: sentry:9.1.2
+          imagePullPolicy: IfNotPresent
+          command: ["sentry", "run", "cron", "-l", "info"]
+          envFrom:
+            - configMapRef:
+                name: sentry-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-worker-deployment
+  namespace: sentry
+  labels:
+    layer: sentry
+    env: all
+    app: sentry-worker
+    name: sentry-worker-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      layer: sentry
+      env: all
+      app: sentry-worker
+      name: sentry-worker-server
+  template:
+    metadata:
+      labels:
+        layer: sentry
+        env: all
+        app: sentry-worker
+        name: sentry-worker-server
+    spec:
+      containers:
+        - name: sentry-worker
+          image: sentry:9.1.2
+          imagePullPolicy: IfNotPresent
+          command: ["sentry", "run", "worker", "-l", "info", "-c", "4"]
+          envFrom:
+            - configMapRef:
+                name: sentry-config
